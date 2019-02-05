@@ -3,45 +3,67 @@ import logo from './logo.svg';
 import './App.css';
 import { Api, JsonRpc, RpcError } from 'eosjs';
 import JsSignatureProvider from 'eosjs/dist/eosjs-jssig';
-const defaultPrivateKey = "PW5KZfGY9xTQh9HB1meEsD9Ur6a49zLw9d5b3bCokKm1hEqLDr9qu"; // useraaaaaaaa
+const defaultPrivateKey = "5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3";
 const signatureProvider = new JsSignatureProvider([defaultPrivateKey]);
 const rpc = new JsonRpc('http://127.0.0.1:7777');
 const api = new Api({ rpc, signatureProvider });
 
 class App extends Component {
 
-  state = { result: 'result' };
+  state = {
+    id: '',
+    status: 'loading..',
+    count: 0,
+  };
 
   async componentDidMount() {
-    const result = await api.transact({
-      actions: [{
-        account: 'eosio.token',
-        name: 'transfer',
-        authorization: [{
-            actor: 'alice',
-            permission: 'active',
-        }],
-        data: {
-            from: 'alice',
-            to: 'bob',
-            quantity: '0.0001 SYS',
-            memo: '',
-        },
-    }]
-    }, {
-      blocksBehind: 3,
-      expireSeconds: 30,
-    });
-    this.setState({ result })
+    try {
+      const result = await api.transact({
+        actions: [{
+          account: 'addressbook',
+          name: 'upsert',
+          authorization: [{
+              actor: 'tom',
+              permission: 'active',
+          }],
+          data: {
+              user: 'tom',
+              first_name: 'tom',
+              last_name: 'jobim',
+              age: 30,
+              street: '12345 road',
+              city: 'rio',
+              state: 'brasil',
+          },
+      }]
+      }, {
+        blocksBehind: 3,
+        expireSeconds: 30,
+      });
+      console.log(result);
+      const { transaction_id, processed } = result;
+      this.setState({
+        id: transaction_id,
+        status: processed.receipt.status,
+      });
+    } catch (e) {
+      console.log('\nCaught exception: ' + e);
+      if (e instanceof RpcError) console.log(JSON.stringify(e.json, null, 2));
+    }
   }
+
+  addCount(count) {
+    console.log(`click!! ${count}`);
+    this.setState({ count: count + 1 });
+  }
+
   render() {
     return (
       <div className="App">
         <header className="App-header">
           <img src={logo} className="App-logo" alt="logo" />
-          <p>
-            Edit <code>src/App.js</code> and save to reload.
-          </p>
+          <p>{this.state.id}</p>
+          <p>{this.state.status}</p>
           <a
             className="App-link"
             href="https://reactjs.org"
@@ -49,8 +71,8 @@ class App extends Component {
             rel="noopener noreferrer"
           >
             Learn React
-            {this.state.result}
           </a>
+          <button onClick={() => this.addCount(this.state.count)}>{this.state.count}</button>
         </header>
       </div>
     );
